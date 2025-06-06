@@ -1,0 +1,48 @@
+Loading model from models/ldm/text2img-large/model.ckpt
+LatentDiffusion: Running in eps-prediction mode
+DiffusionWrapper has 872.30 M params.
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 4, 32, 32) = 4096 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+Restored from models/ldm/text2img-large/model.ckpt with 0 missing and 2 unexpected keys
+Unexpected Keys: ['model_ema.decay', 'model_ema.num_updates']
+Entered training loop
+Epoch 0
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+Traceback (most recent call last):
+  File "train_new_v1.py", line 234, in <module>
+    loss = model.training_step(batch, global_step)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/models/diffusion/ddpm.py", line 352, in training_step
+    loss, loss_dict = self.shared_step(batch)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/models/diffusion/ddpm.py", line 907, in shared_step
+    loss = self(x, c)
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/models/diffusion/ddpm.py", line 915, in forward
+    c = self.get_learned_conditioning(c)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/models/diffusion/ddpm.py", line 594, in get_learned_conditioning
+    c = self.cond_stage_model.encode(c, embedding_manager=self.embedding_manager)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 327, in encode
+    return self(text, **kwargs)
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 409, in forward
+    if self.tokenizer(self.placeholder_string)["input_ids"][1] not in self.tokenizer(chunk)["input_ids"]:
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1177, in __getattr__
+    raise AttributeError("'{}' object has no attribute '{}'".format(
+AttributeError: 'ChunkedCLIPEmbedder' object has no attribute 'placeholder_string'

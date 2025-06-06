@@ -1,0 +1,58 @@
+src/taming-transformers
+
+# Ignore large checkpoints
+logs_deprecated/
+models/
+
+# Ignore LDM
+ldm/
+
+# Ignore taming-trasformers
+src/taming-transformers/anaconda.sh
+src/taming-transformers
+
+# Python
+*.pyc
+__pycache__/
+venv/
+env/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Model Checkpoints
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+# Datasets 
+datases/
+images/
+videos/
+*.jpg
+*.jpeg
+*.png
+
+# Embeddings & Logs
+*.bin
+*.log
+embeddings/
+logs/
+
+# Output/Generated files
+output/
+outputs/
+
+# IDE and OS specific
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Large files (일반적인 대용량 파일 확장자)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.bzip2
+*.gz
