@@ -178,8 +178,13 @@ if __name__ == "__main__":
     train_dataset = instantiate_from_config(config.data.params.train)
     val_dataset = instantiate_from_config(config.data.params.validation)
 
-    from ldm.modules.encoders.multilingual_clip import XLMTextEncoder
-    model.cond_stage_model = XLMTextEncoder().cuda()
+    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
+    model.cond_stage_model = MultilingualTextEmbedder(
+
+    ).cuda()
+    model.cond_stage_model.to("cuda")
+    model.cond_stage_model.tokenizer.to("cuda")  # nested
+    model.cond_stage_model.transformer.to("cuda")  # nested
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.data.params.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.data.params.batch_size, shuffle=False, num_workers=4)
