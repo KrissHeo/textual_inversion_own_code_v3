@@ -186,7 +186,7 @@ if __name__ == "__main__":
     val_dataset = instantiate_from_config(config.data.params.validation)
 
     from ldm.modules.encoders.modules import ChunkedCLIPEmbedder
-    model.cond_stage_model = ChunkedCLIPEmbedder()
+    model.cond_stage_model = ChunkedCLIPEmbedder(placeholder_string=opt.placeholder_string)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.data.params.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.data.params.batch_size, shuffle=False, num_workers=4)

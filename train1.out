@@ -41,8 +41,24 @@ Traceback (most recent call last):
     return self(text, **kwargs)
   File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
     return forward_call(*input, **kwargs)
-  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 409, in forward
-    if self.tokenizer(self.placeholder_string)["input_ids"][1] not in self.tokenizer(chunk)["input_ids"]:
-  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1177, in __getattr__
-    raise AttributeError("'{}' object has no attribute '{}'".format(
-AttributeError: 'ChunkedCLIPEmbedder' object has no attribute 'placeholder_string'
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 418, in forward
+    emb = super().forward([chunk], embedding_manager=embedding_manager, **kwargs)  # ✅ kwargs 반영
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 322, in forward
+    z = self.transformer(input_ids=tokens, **kwargs)
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 300, in transformer_forward
+    return self.text_model(
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 261, in text_encoder_forward
+    hidden_states = self.embeddings(input_ids=input_ids, position_ids=position_ids, embedding_manager=embedding_manager)
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/encoders/modules.py", line 186, in embedding_forward
+    inputs_embeds = embedding_manager(input_ids, inputs_embeds)
+  File "/home/elicer/anaconda3/envs/ldm/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/elicer/textual_inversion_own_code_v3/ldm/modules/embedding_manager.py", line 101, in forward
+    embedded_text[placeholder_idx] = placeholder_embedding
+RuntimeError: shape mismatch: value tensor of shape [1280] cannot be broadcast to indexing result of shape [0, 768]
