@@ -174,21 +174,47 @@ if __name__ == "__main__":
     config.data.params.train.params.data_root = opt.data_root
     config.data.params.validation.params.data_root = opt.data_root
 
+
+
+
     model = load_model_from_config(config, opt.actual_resume).cuda()
     train_dataset = instantiate_from_config(config.data.params.train)
     val_dataset = instantiate_from_config(config.data.params.validation)
 
-    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
-    model.cond_stage_model = MultilingualTextEmbedder(
+    placeholder_token = opt.placeholder_string  # e.g. "*", "<neon>", etc.
 
-    ).cuda()
-    model.cond_stage_model.to("cuda")
-    model.cond_stage_model.tokenizer.to("cuda")  # nested
-    model.cond_stage_model.transformer.to("cuda")  # nested
+    from aligner import Aligner  # aligner class
+    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
+
+    # Load multilingual encoder
+    mbert = MultilingualTextEmbedder().cuda()
+
+    # Load trained aligner
+    aligner = Aligner().cuda()
+    aligner.load_state_dict(torch.load("aligner.pt"))
+    aligner.eval()
+
+    with torch.no_grad():
+        ko_token = opt.init_word  # 예: "넨"
+        ko_emb = mbert([ko_token])[0]  # (1280,)
+        aligned_vec = aligner(ko_emb)         # → BERT 임베딩 공간
+
+    print(ko_token, ko_emb.shape, aligned_vec.shape)
+    # placeholder token 정의
+    placeholder_token = opt.placeholder_string  # 예: "*"
+
+    vec = model.embedding_manager.string_to_param_dict[opt.placeholder_string]
+    print(f"[DEBUG] Placeholder '{opt.placeholder_string}' shape: {vec.shape}")
+
+    # 주입
+    model.embedding_manager.string_to_param_dict[placeholder_token].data.copy_(aligned_vec.unsqueeze(0))
+    model.embedding_manager.initial_embeddings[placeholder_token].data.copy_(aligned_vec.unsqueeze(0))
+
+    print(f"✅ Placeholder '{placeholder_token}' initialized with aligned vector from '{ko_token}'")
+
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.data.params.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.data.params.batch_size, shuffle=False, num_workers=4)
-
     optimizer = torch.optim.Adam(model.parameters(), lr=config.model.base_learning_rate)
 
     bs = config.data.params.batch_size
@@ -230,6 +256,10 @@ if __name__ == "__main__":
             for batch in train_loader:
                 optimizer.zero_grad()
                 loss = model.training_step(batch, global_step)
+
+                for name, p in model.embedding_manager.named_parameters():
+                    loss = loss + (0.0 * p.sum())
+
                 loss.backward()
                 optimizer.step()
 
