@@ -75,9 +75,14 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.multilingual_clip.MultilingualTextEmbedder
+      target: ldm.modules.encoders.pre_BERT.AdapterBERTEmbedder
       params:
-        model_name: sentence-transformers/clip-ViT-B-32-multilingual-v1
+        n_embed: 1280
+        n_layer: 12
+        vocab_size: 30522
+        adapter_dim: 64
+        max_seq_len: 77
+        device: cuda
 
 data:
   target: main.DataModuleFromConfig

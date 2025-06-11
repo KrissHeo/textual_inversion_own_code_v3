@@ -28,7 +28,6 @@ def load_model_from_config(config, ckpt, verbose=False):
     model.eval()
     return model
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -112,15 +111,16 @@ if __name__ == "__main__":
         type=str, 
         help="Path to a pre-trained embedding manager checkpoint")
 
+
+
     opt = parser.parse_args()
-
-
-    config = OmegaConf.load("configs/latent-diffusion/txt2img-1p4B-eval_with_tokens.yaml")  # TODO: Optionally download from same location as ckpt and chnage this logic
-    model = load_model_from_config(config, opt.ckpt_path)  # TODO: check path
+    config = OmegaConf.load("/home/elicer/textual_inversion_own_code_v3/configs/latent-diffusion/txt2img-1p4B-finetune-v1-v1.yaml")  
+    model = load_model_from_config(config, opt.ckpt_path)  
     model.embedding_manager.load(opt.embedding_path)
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
+
 
     if opt.plms:
         sampler = PLMSSampler(model)
@@ -132,19 +132,36 @@ if __name__ == "__main__":
 
     prompt = opt.prompt
 
-
+    print(model.embedding_manager)
     sample_path = os.path.join(outpath, "samples")
     os.makedirs(sample_path, exist_ok=True)
     base_count = len(os.listdir(sample_path))
 
+
+    tokens = model.cond_stage_model.tknz_fn([prompt])  # batch 형태로 줘야 함
+    print("Input tokens:", tokens)    
+    tokens_ids = tokens[0].tolist()  # 1차원 리스트로 변환
+    decoded = model.cond_stage_model.tknz_fn.tokenizer.convert_ids_to_tokens(tokens_ids)
+    print("Decoded:", decoded)
+   
+    with torch.no_grad():
+        embedding = model.cond_stage_model([prompt])  # shape: [1, 77, 768]
+    print("Embedding shape:", embedding.shape)
     all_samples=list()
     with torch.no_grad():
         with model.ema_scope():
             uc = None
             if opt.scale != 1.0:
-                uc = model.get_learned_conditioning(opt.n_samples * [""])
+                print("uc coming")
+                uc = model.get_learned_conditioning([""] * opt.n_samples)
+            
+                print("uc.shape:", uc.shape)
+
             for n in trange(opt.n_iter, desc="Sampling"):
-                c = model.get_learned_conditioning(opt.n_samples * [prompt])
+                print("c coming")
+                c = model.get_learned_conditioning([prompt] * opt.n_samples)
+
+                print("c.shape", c.shape)
                 shape = [4, opt.H//8, opt.W//8]
                 samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                  conditioning=c,

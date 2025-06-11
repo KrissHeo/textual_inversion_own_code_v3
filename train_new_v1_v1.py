@@ -1,4 +1,10 @@
-import os, sys, glob, datetime
+'''
+실험 1. 기존의 train_new.py에서 새로 붙이기
+[실험 1] 청킹 + 어텐션 재조합 적용
+
+'''
+
+import os, sys, glob, datetime, signal
 import torch
 import numpy as np
 from omegaconf import OmegaConf
@@ -6,7 +12,6 @@ import argparse
 from load import load_model_from_config, instantiate_from_config
 from make_log_new import maybe_log_images  # <-- 이미지 로그 유틸 추가
 import pytz
-
 
 def get_parser(**parser_kwargs):
     
@@ -174,42 +179,9 @@ if __name__ == "__main__":
     config.data.params.train.params.data_root = opt.data_root
     config.data.params.validation.params.data_root = opt.data_root
 
-
     model = load_model_from_config(config, opt.actual_resume).cuda()
     train_dataset = instantiate_from_config(config.data.params.train)
     val_dataset = instantiate_from_config(config.data.params.validation)
-
-    placeholder_token = opt.placeholder_string  # e.g. "*", "<neon>", etc.
-
-    from aligner import Aligner  # aligner class
-    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
-
-    # Load multilingual encoder
-    mbert = MultilingualTextEmbedder().cuda()
-
-    # Load trained aligner
-    aligner = Aligner().cuda()
-    aligner.load_state_dict(torch.load("aligner.pt"))
-    aligner.eval()
-
-    with torch.no_grad():
-        ko_token = opt.init_word  # 예: "넨"
-        ko_emb = mbert.encode_tokens(ko_token).detach()  # ✅ [L, 1280]
-        aligned_vec = aligner(ko_emb)           # ✅ [1, 77, 1280]
-
-    print(ko_token, ko_emb.shape, aligned_vec.shape)
-    # placeholder token 정의
-    placeholder_token = opt.placeholder_string  # 예: "*"
-
-    vec = model.embedding_manager.string_to_param_dict[opt.placeholder_string]
-    print(f"[DEBUG] Placeholder '{opt.placeholder_string}' shape: {vec.shape}")
-
-    # 주입
-    model.embedding_manager.string_to_param_dict[placeholder_token].data.copy_(aligned_vec)
-    model.embedding_manager.initial_embeddings[placeholder_token].data.copy_(aligned_vec)
-
-    print(f"✅ Placeholder '{placeholder_token}' initialized with aligned vector from '{ko_token}'")
-
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.data.params.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.data.params.batch_size, shuffle=False, num_workers=4)
@@ -237,6 +209,12 @@ if __name__ == "__main__":
     global_step = 0
     num_epochs = config.get("num_epochs", 100)
 
+    def save_ckpt():
+        ckpt_path = os.path.join(ckptdir, f"step_{global_step}.pt")
+        torch.save(model.state_dict(), ckpt_path)
+        print(f"Checkpoint saved: {ckpt_path}")
+
+    signal.signal(signal.SIGUSR1, lambda *_: save_ckpt())
 
     print("Entered training loop")
 

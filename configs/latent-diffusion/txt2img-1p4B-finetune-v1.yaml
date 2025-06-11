@@ -75,9 +75,10 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.multilingual_clip.MultilingualTextEmbedder
+      target: ldm.modules.encoders.modules.ChunkedBERTEmbedder
       params:
-        model_name: sentence-transformers/clip-ViT-B-32-multilingual-v1
+        n_embed: 1280
+        n_layer: 32
 
 data:
   target: main.DataModuleFromConfig

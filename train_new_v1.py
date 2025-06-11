@@ -180,25 +180,11 @@ if __name__ == "__main__":
     config.data.params.validation.params.data_root = opt.data_root
 
     model = load_model_from_config(config, opt.actual_resume).cuda()
-    #print("cond_stage_model class:", model.cond_stage_model)
     train_dataset = instantiate_from_config(config.data.params.train)
     val_dataset = instantiate_from_config(config.data.params.validation)
 
-    from ldm.modules.encoders.modules import ChunkedBERTEmbedder
-
-    model.cond_stage_model = ChunkedBERTEmbedder(
-        n_embed=1280,
-        n_layer=32,
-        placeholder_string=opt.placeholder_string,
-        device="cuda"
-    )
-    #print("cond_stage_model class:", model.cond_stage_model)
-    model.cond_stage_model.to("cuda")
-    model.cond_stage_model.transformer.to("cuda")  # nested
-    model.cond_stage_model.tknz_fn.to("cuda")   
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.data.params.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.data.params.batch_size, shuffle=False, num_workers=4)
-
     optimizer = torch.optim.Adam(model.parameters(), lr=config.model.base_learning_rate)
 
     bs = config.data.params.batch_size
