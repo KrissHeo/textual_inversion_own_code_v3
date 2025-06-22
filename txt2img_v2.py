@@ -28,6 +28,33 @@ def load_model_from_config(config, ckpt, verbose=False):
     model.eval()
     return model
 
+def get_aligned_conditioning(prompt, model, mbert, aligner):
+    tokens = prompt.strip().split()  # 간단한 단어 분리, tokenizer 써도 됨
+
+    
+    if not tokens:
+    # dummy 임베딩 넣기 (ex. "[PAD]"이나 안전한 토큰)
+        tokens = ["*"]  # 또는 "dummy", "무", "[PAD]" 등 mBERT가 처리할 수 있는 단어
+        use_dummy = True
+    else:
+        use_dummy = False
+
+    
+    # mBERT로 임베딩
+    ko_emb = mbert(tokens)            # [len, 512]
+    aligned = aligner(ko_emb)         # [len, 1280]
+
+    if not use_dummy:
+        for i, tok in enumerate(tokens):
+            if tok == "*":
+                aligned[0, i] = model.embedding_manager.string_to_param_dict["*"]
+    return aligned
+    # # Padding
+    # padded = torch.zeros(1, 77, 1280).to(aligned.device)
+    # padded[0, :aligned.shape[0]] = aligned
+    # return padded
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -111,16 +138,15 @@ if __name__ == "__main__":
         type=str, 
         help="Path to a pre-trained embedding manager checkpoint")
 
-
-
     opt = parser.parse_args()
-    config = OmegaConf.load("/home/elicer/textual_inversion_own_code_v3/configs/latent-diffusion/txt2img-1p4B-eval_with_tokens-v1.yaml")  
-    model = load_model_from_config(config, opt.ckpt_path)  
+
+
+    config = OmegaConf.load("configs/latent-diffusion/txt2img-1p4B-eval_with_tokens.yaml")  # TODO: Optionally download from same location as ckpt and chnage this logic
+    model = load_model_from_config(config, opt.ckpt_path)  # TODO: check path
     model.embedding_manager.load(opt.embedding_path)
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
-
 
     if opt.plms:
         sampler = PLMSSampler(model)
@@ -132,39 +158,40 @@ if __name__ == "__main__":
 
     prompt = opt.prompt
 
-    print(model.embedding_manager)
+
     sample_path = os.path.join(outpath, "samples")
     os.makedirs(sample_path, exist_ok=True)
     base_count = len(os.listdir(sample_path))
 
+    from aligner import Aligner  # aligner class
+    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
 
-    tokens = model.cond_stage_model.tknz_fn([prompt])  # batch 형태로 줘야 함
-    print("Input tokens:", tokens)    
-    tokens_ids = tokens[0].tolist()  # 1차원 리스트로 변환
-    decoded = model.cond_stage_model.tknz_fn.tokenizer.convert_ids_to_tokens(tokens_ids)
-    print("Decoded:", decoded)
-   
-    with torch.no_grad():
-        embedding = model.cond_stage_model([prompt])  # shape: [1, 77, 768]
-    print("Embedding shape:", embedding.shape)
+    mbert = MultilingualTextEmbedder().cuda()
+    aligner = Aligner().cuda()
 
-    print("Learned tokens:", list(model.embedding_manager.string_to_param_dict.keys()))
-
-    # 1. placeholder 토큰 id
-    placeholder_token = "*"
-    token_ids = model.cond_stage_model.tknz_fn([placeholder_token])  # shape: [1, 3]
-    placeholder_id = token_ids[0, 1].item()  # [CLS], *, [SEP] → 가운데가 실제 토큰
-    print("✅ Extracted placeholder token ID:", placeholder_id)
-
-
+    aligner.load_state_dict(torch.load("aligner.pt"))
+    
+    aligner.eval()
     all_samples=list()
     with torch.no_grad():
         with model.ema_scope():
             uc = None
             if opt.scale != 1.0:
-                uc = model.get_learned_conditioning(opt.n_samples * [""])
+                print("uc coming")
+                uc = torch.cat([
+                                get_aligned_conditioning("", model, mbert, aligner)
+                                for _ in range(opt.n_samples)
+                            ], dim=0)   
+            
+                print("uc.shape:", uc.shape)
+
             for n in trange(opt.n_iter, desc="Sampling"):
-                c = model.get_learned_conditioning(opt.n_samples * [prompt])
+                print("c coming")
+                c = torch.cat([
+                                get_aligned_conditioning(prompt, model, mbert, aligner)
+                                for _ in range(opt.n_samples)
+                            ], dim=0)
+                print("c.shape", c.shape)
                 shape = [4, opt.H//8, opt.W//8]
                 samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                  conditioning=c,

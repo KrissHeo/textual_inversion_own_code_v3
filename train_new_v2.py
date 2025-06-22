@@ -181,8 +181,8 @@ if __name__ == "__main__":
 
     placeholder_token = opt.placeholder_string  # e.g. "*", "<neon>", etc.
 
-    from aligner import Aligner  # aligner class
-    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
+    from improvement.v2.aligner import Aligner  # aligner class
+    from ldm.modules.encoders.pre_BERT import MultilingualTextEmbedder
 
     # Load multilingual encoder
     mbert = MultilingualTextEmbedder().cuda()
@@ -258,7 +258,6 @@ if __name__ == "__main__":
                 # 어차피 전체 모델이 아닌 Embedding_manager만 저장하면 됨.
                 if global_step % 1000 == 0:
                     model.embedding_manager.save(os.path.join(ckptdir, f"step_{global_step}.pt"))
-
 
                 # 이미지 로그 추가
                 maybe_log_images(model, batch, step=global_step, save_dir=logdir, log_freq=500)

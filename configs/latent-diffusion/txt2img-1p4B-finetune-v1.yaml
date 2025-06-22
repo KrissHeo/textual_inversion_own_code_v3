@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 1.0e-3
+  base_learning_rate: 5.0e-3
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -75,10 +75,14 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.modules.ChunkedBERTEmbedder
+      target: ldm.modules.encoders.post_BERT.AdapterBERTEmbedder
       params:
         n_embed: 1280
-        n_layer: 32
+        n_layer: 12
+        vocab_size: 30522
+        adapter_dim: 64
+        max_seq_len: 77
+        device: cuda
 
 data:
   target: main.DataModuleFromConfig
@@ -115,4 +119,4 @@ lightning:
 
   trainer:
     benchmark: True
-    max_steps: 10100 #기존 : 6100
+    max_steps: 6100

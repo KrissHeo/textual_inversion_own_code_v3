@@ -91,6 +91,3 @@ class MultilingualTextEmbedder(AbstractEncoder):
 
     def encode(self, texts, **kwargs):
         return self(texts)
-
-
-

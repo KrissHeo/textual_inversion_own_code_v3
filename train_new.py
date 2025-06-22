@@ -1,5 +1,4 @@
-import os, sys, glob, datetime, signal
-import torch
+import os, sys, glob, datetime
 import numpy as np
 from omegaconf import OmegaConf
 import argparse
@@ -205,13 +204,6 @@ if __name__ == "__main__":
     global_step = 0
     num_epochs = config.get("num_epochs", 100)
 
-    def save_ckpt():
-        ckpt_path = os.path.join(ckptdir, f"step_{global_step}.pt")
-        torch.save(model.state_dict(), ckpt_path)
-        print(f"Checkpoint saved: {ckpt_path}")
-
-    signal.signal(signal.SIGUSR1, lambda *_: save_ckpt())
-
     print("Entered training loop")
 
     if opt.train:
@@ -229,8 +221,8 @@ if __name__ == "__main__":
                     print(f"[Epoch {epoch} | Step {global_step}] Loss: {loss.item():.4f}")
 
                 if global_step % 1000 == 0:
-                    save_ckpt()
-
+                    model.embedding_manager.save(os.path.join(ckptdir, f"step_{global_step}.pt"))
+                    
                 # 이미지 로그 추가
                 maybe_log_images(model, batch, step=global_step, save_dir=logdir, log_freq=500)
 

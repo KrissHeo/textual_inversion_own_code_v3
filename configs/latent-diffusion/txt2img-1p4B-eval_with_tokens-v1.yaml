@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 1.0e-3
+  base_learning_rate: 5.0e-05
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -16,16 +16,12 @@ model:
     monitor: val/loss_simple_ema
     scale_factor: 0.18215
     use_ema: False
-    embedding_reg_weight: 0.0
 
     personalization_config:
       target: ldm.modules.embedding_manager.EmbeddingManager
       params:
         placeholder_strings: ["*"]
-        initializer_words: ["sculpture"]
-        per_image_tokens: false
-        num_vectors_per_token: 77
-        progressive_words: False
+        initializer_words: []
 
     unet_config:
       target: ldm.modules.diffusionmodules.openaimodel.UNetModel
@@ -74,6 +70,7 @@ model:
         lossconfig:
           target: torch.nn.Identity
 
+
     cond_stage_config:
       target: ldm.modules.encoders.pre_BERT.AdapterBERTEmbedder
       params:
@@ -83,40 +80,3 @@ model:
         adapter_dim: 64
         max_seq_len: 77
         device: cuda
-
-data:
-  target: main.DataModuleFromConfig
-  params:
-    batch_size: 4
-    num_workers: 2
-    wrap: false
-    train:
-      target: ldm.data.personalized.PersonalizedBase
-      params:
-        size: 256
-        set: train
-        per_image_tokens: false
-        repeats: 100
-    validation:
-      target: ldm.data.personalized.PersonalizedBase
-      params:
-        size: 256
-        set: val
-        per_image_tokens: false
-        repeats: 10
-
-lightning:
-  modelcheckpoint:
-    params:
-      every_n_train_steps: 500
-  callbacks:
-    image_logger:
-      target: main.ImageLogger
-      params:
-        batch_frequency: 500
-        max_images: 8
-        increase_log_steps: False
-
-  trainer:
-    benchmark: True
-    max_steps: 10100 #기존 : 6100

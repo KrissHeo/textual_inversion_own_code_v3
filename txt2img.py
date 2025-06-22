@@ -28,32 +28,6 @@ def load_model_from_config(config, ckpt, verbose=False):
     model.eval()
     return model
 
-def get_aligned_conditioning(prompt, model, mbert, aligner):
-    tokens = prompt.strip().split()  # 간단한 단어 분리, tokenizer 써도 됨
-
-    
-    if not tokens:
-    # dummy 임베딩 넣기 (ex. "[PAD]"이나 안전한 토큰)
-        tokens = ["*"]  # 또는 "dummy", "무", "[PAD]" 등 mBERT가 처리할 수 있는 단어
-        use_dummy = True
-    else:
-        use_dummy = False
-
-    
-    # mBERT로 임베딩
-    ko_emb = mbert(tokens)            # [len, 512]
-    aligned = aligner(ko_emb)         # [len, 1280]
-
-    if not use_dummy:
-        for i, tok in enumerate(tokens):
-            if tok == "*":
-                aligned[0, i] = model.embedding_manager.string_to_param_dict["*"]
-    return aligned
-    # # Padding
-    # padded = torch.zeros(1, 77, 1280).to(aligned.device)
-    # padded[0, :aligned.shape[0]] = aligned
-    # return padded
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -142,8 +116,12 @@ if __name__ == "__main__":
 
 
     config = OmegaConf.load("configs/latent-diffusion/txt2img-1p4B-eval_with_tokens.yaml")  # TODO: Optionally download from same location as ckpt and chnage this logic
-    model = load_model_from_config(config, opt.ckpt_path)  # TODO: check path
-    model.embedding_manager.load(opt.embedding_path)
+    model = load_model_from_config(config, opt.ckpt_path)
+    if opt.embedding_path is not None:
+        print(f"Loading embedding from: {opt.embedding_path}")
+        model.embedding_manager.load(opt.embedding_path)
+    else:
+        print("No embedding_path provided, skipping embedding load.")
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
@@ -163,38 +141,14 @@ if __name__ == "__main__":
     os.makedirs(sample_path, exist_ok=True)
     base_count = len(os.listdir(sample_path))
 
-    from aligner import Aligner  # aligner class
-    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
-
-    mbert = MultilingualTextEmbedder().cuda()
-    aligner = Aligner().cuda()
-
-    from aligner import train_and_save_aligner
- #   train_and_save_aligner()
-
-    aligner.load_state_dict(torch.load("aligner.pt"))
-    
-    aligner.eval()
     all_samples=list()
     with torch.no_grad():
         with model.ema_scope():
             uc = None
             if opt.scale != 1.0:
-                print("uc coming")
-                uc = torch.cat([
-                                get_aligned_conditioning("", model, mbert, aligner)
-                                for _ in range(opt.n_samples)
-                            ], dim=0)   
-            
-                print("uc.shape:", uc.shape)
-
+                uc = model.get_learned_conditioning(opt.n_samples * [""])
             for n in trange(opt.n_iter, desc="Sampling"):
-                print("c coming")
-                c = torch.cat([
-                                get_aligned_conditioning(prompt, model, mbert, aligner)
-                                for _ in range(opt.n_samples)
-                            ], dim=0)
-                print("c.shape", c.shape)
+                c = model.get_learned_conditioning(opt.n_samples * [prompt])
                 shape = [4, opt.H//8, opt.W//8]
                 samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                  conditioning=c,
@@ -222,6 +176,9 @@ if __name__ == "__main__":
 
     # to image
     grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()
-    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{prompt.replace(" ", "-")}.jpg'))
+    safe_name = prompt[:30].replace(" ", "-")
+    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{safe_name}.jpg'))
+
+   # Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{prompt.replace(" ", "-")}.jpg'))
 
     print(f"Your samples are ready and waiting four you here: \n{outpath} \nEnjoy.")

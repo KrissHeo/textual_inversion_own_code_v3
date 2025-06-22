@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import csv
-from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
+from ldm.modules.encoders.pre_BERT import MultilingualTextEmbedder
 from ldm.modules.encoders.modules import BERTEmbedder
 
 def pad_to_77(x, pad_value=0.0):
@@ -37,7 +37,8 @@ def train_and_save_aligner(save_path="aligner.pt"):
 
     # Load word pairs
     pairs = []
-    with open("pairs.csv", newline="", encoding="utf-8") as f:
+    pairs_dir = "/home/elicer/textual_inversion_own_code_v3/improvement/v2/pairs.csv"
+    with open(pairs_dir, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             pairs.append((row["ko"], row["en"]))

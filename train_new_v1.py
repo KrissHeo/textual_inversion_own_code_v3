@@ -1,10 +1,8 @@
 '''
-실험 1. 기존의 train_new.py에서 새로 붙이기
-[실험 1] 청킹 + 어텐션 재조합 적용
-
+[실험 1] Token Embedding 결과에 후처리(Adaptor + Attention)
 '''
 
-import os, sys, glob, datetime, signal
+import os, sys, glob, datetime
 import torch
 import numpy as np
 from omegaconf import OmegaConf
@@ -68,8 +66,6 @@ def get_parser(**parser_kwargs):
             return False
         else:
             raise argparse.ArgumentTypeError("Boolean value expected.")
-
-        # 기본 실험 설정
 
     parser = argparse.ArgumentParser(**parser_kwargs)
 
@@ -214,8 +210,6 @@ if __name__ == "__main__":
         torch.save(model.state_dict(), ckpt_path)
         print(f"Checkpoint saved: {ckpt_path}")
 
-    signal.signal(signal.SIGUSR1, lambda *_: save_ckpt())
-
     print("Entered training loop")
 
     if opt.train:
@@ -226,14 +220,17 @@ if __name__ == "__main__":
             for batch in train_loader:
                 optimizer.zero_grad()
                 loss = model.training_step(batch, global_step)
+
                 loss.backward()
                 optimizer.step()
 
                 if global_step % 100 == 0:
                     print(f"[Epoch {epoch} | Step {global_step}] Loss: {loss.item():.4f}")
 
+                # 어차피 전체 모델이 아닌 Embedding_manager만 저장하면 됨.
                 if global_step % 1000 == 0:
-                    save_ckpt()
+                    model.embedding_manager.save(os.path.join(ckptdir, f"step_{global_step}.pt"))
+
 
                 # 이미지 로그 추가
                 maybe_log_images(model, batch, step=global_step, save_dir=logdir, log_freq=500)
