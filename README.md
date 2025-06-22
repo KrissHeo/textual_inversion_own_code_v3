@@ -48,7 +48,9 @@ python train_new.py \
     --init_word {"init_word"} \
     --placeholder_string '*' 
 
-train할 때는 txt2img-1p4B-finetune.yaml 혹은 .v1, v2 붙은 config 파일 사용  \
+train할 때는 txt2img-1p4B-finetune.yaml 혹은 .v1, v2 붙은 config 파일 사용  
+improvement 진행하고 싶으면, train_new_{v}.py + config도 버전에 맞춰서 사용. 실행 코드는 동일  
+
 
 아래 명령어로 txt2img 스크립트 실행 가능: 
 
@@ -63,4 +65,4 @@ python3 txt2img.py \
     --n_iter 1 \
     --ddim_eta 0.0
 
-Sampling할 때는 txt2img-1p4B-eval_with_tokens.yaml 혹은 .v1 붙은 config 파일 사용  \
+improvement 진행하고 싶으면, tx2img_{v}.py 내부에 있는 config_dir를 버전에 맞춰서 사용. 실행 코드는 동일
