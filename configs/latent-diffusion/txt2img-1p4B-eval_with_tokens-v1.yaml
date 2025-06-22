@@ -72,7 +72,7 @@ model:
 
 
     cond_stage_config:
-      target: ldm.modules.encoders.pre_BERT.AdapterBERTEmbedder
+      target: ldm.modules.encoders.post_BERT.AdapterBERTEmbedder
       params:
         n_embed: 1280
         n_layer: 12

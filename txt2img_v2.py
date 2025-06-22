@@ -163,13 +163,14 @@ if __name__ == "__main__":
     os.makedirs(sample_path, exist_ok=True)
     base_count = len(os.listdir(sample_path))
 
-    from aligner import Aligner  # aligner class
-    from ldm.modules.encoders.multilingual_clip import MultilingualTextEmbedder
+    from improvement.v2.aligner import Aligner  # aligner class
+    from ldm.modules.encoders.pre_BERT import MultilingualTextEmbedder
 
     mbert = MultilingualTextEmbedder().cuda()
     aligner = Aligner().cuda()
 
-    aligner.load_state_dict(torch.load("aligner.pt"))
+    align_dir = "/home/elicer/textual_inversion_own_code_v3/improvement/v2/aligner.pt"
+    aligner.load_state_dict(torch.load(align_dir))
     
     aligner.eval()
     all_samples=list()
